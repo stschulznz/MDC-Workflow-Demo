@@ -55,7 +55,7 @@
                 "inputs": {
                     "host": {
                         "connection": {
-                            "name": "@parameters('$connections')['ascalert-1']['connectionId']"
+                            "name": "@parameters('$connections')['ascalert']['connectionId']"
                         }
                     },
                     "body": {
