@@ -307,22 +307,6 @@
             }
         }
     },
-    "parameters": {
-        "$connections": {
-            "type": "Object",
-            "value": {
-                "ascalert-1": {
-                    "id": "/subscriptions/df8c31ed-afa3-40de-a67d-7330e09c8acc/providers/Microsoft.Web/locations/westus/managedApis/ascalert",
-                    "connectionId": "/subscriptions/df8c31ed-afa3-40de-a67d-7330e09c8acc/resourceGroups/seclab_westus/providers/Microsoft.Web/connections/ascalert-1",
-                    "connectionName": "ascalert-1"
-                },
-                "teams": {
-                    "id": "/subscriptions/df8c31ed-afa3-40de-a67d-7330e09c8acc/providers/Microsoft.Web/locations/westus/managedApis/teams",
-                    "connectionId": "/subscriptions/df8c31ed-afa3-40de-a67d-7330e09c8acc/resourceGroups/seclab_westus/providers/Microsoft.Web/connections/teams",
-                    "connectionName": "teams"
-                }
-            }
-        },
         "parameters": {
           "$connections": {
             "value": {
