@@ -6,7 +6,7 @@
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
       "metadata": {
-        "description": "Location for all resources"
+        "description": "Location for deployment"
       }
     },
     "logicAppName": {
@@ -131,11 +131,13 @@
             "value": {
               "ascalert": {
                 "connectionId": "[resourceId('Microsoft.Web/connections', 'ascalert')]",
-                "connectionName": "ascalert"
+                "connectionName": "ascalert",
+                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/ascalert')]"
               },
               "teams": {
                 "connectionId": "[resourceId('Microsoft.Web/connections', 'teams')]",
-                "connectionName": "teams"
+                "connectionName": "teams",
+                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/teams')]"
               }
             }
           }
