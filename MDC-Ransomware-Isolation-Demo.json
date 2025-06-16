@@ -6,7 +6,7 @@
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
       "metadata": {
-        "description": "Location for deployment"
+        "description": "Deployment location"
       }
     },
     "logicAppName": {
@@ -46,85 +46,281 @@
       "name": "[parameters('logicAppName')]",
       "location": "[parameters('location')]",
       "properties": {
-        "definition": {
-          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
-          "contentVersion": "1.0.0.0",
-          "parameters": {
+        "definition": "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "triggers": {
+            "When_a_Microsoft_Defender_for_Cloud_alert_is_created_or_triggered": {
+                "type": "ApiConnectionWebhook",
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['ascalert-1']['connectionId']"
+                        }
+                    },
+                    "body": {
+                        "callback_url": "@listCallbackUrl()"
+                    },
+                    "path": "/Microsoft.Security/Alert/subscribe"
+                }
+            }
+        },
+        "actions": {
+            "Condition": {
+                "actions": {
+                    "Post-adaptive-card-and-wait-for-a-response": {
+                        "runAfter": {
+                            "Compose-AdaptiveCard-Request": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnectionWebhook",
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['teams']['connectionId']"
+                                }
+                            },
+                            "body": {
+                                "notificationUrl": "@listCallbackUrl()",
+                                "body": {
+                                    "messageBody": "@outputs('Compose-AdaptiveCard-Request')\n",
+                                    "updateMessage": "Thanks for your response!",
+                                    "recipient": {
+                                        "groupId": "b7a2893a-5a49-4330-85b7-a6daa53a978f",
+                                        "channelId": "19:61267c2b109247e2b013ee08e424b382@thread.skype"
+                                    }
+                                }
+                            },
+                            "path": "/v1.0/teams/conversation/gatherinput/poster/Flow bot/location/@{encodeURIComponent('Channel')}/$subscriptions"
+                        }
+                    },
+                    "Compose-AdaptiveCard-Request": {
+                        "type": "Compose",
+                        "inputs": {
+                            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                            "type": "AdaptiveCard",
+                            "version": "1.2",
+                            "body": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "🚨 Ransomware Alert - Action Required",
+                                    "weight": "Bolder",
+                                    "size": "Large",
+                                    "color": "Attention"
+                                },
+                                {
+                                    "type": "TextBlock",
+                                    "text": "Alert: @{triggerBody()?['AlertDisplayName']}",
+                                    "wrap": true
+                                },
+                                {
+                                    "type": "TextBlock",
+                                    "text": "Description: @{triggerBody()?['Description']}",
+                                    "wrap": true
+                                },
+                                {
+                                    "type": "TextBlock",
+                                    "text": "Compromised Entity: @{triggerBody()?['CompromisedEntity']}",
+                                    "wrap": true
+                                },
+                                {
+                                    "type": "TextBlock",
+                                    "text": "[View Alert in Defender for Cloud](@{triggerBody()?['AlertUri']})",
+                                    "wrap": true
+                                }
+                            ],
+                            "actions": [
+                                {
+                                    "type": "Action.Submit",
+                                    "title": "Isolate Machine",
+                                    "data": {
+                                        "action": "isolate"
+                                    }
+                                },
+                                {
+                                    "type": "Action.Submit",
+                                    "title": "Do Not Isolate",
+                                    "data": {
+                                        "action": "reject"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "Check-Response": {
+                        "actions": {
+                            "Compose-AdaptiveCard-Isolation-Approved": {
+                                "runAfter": {
+                                    "Simulated_step_-_Disable_Device_in_Defender_for_Endpoint": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Compose",
+                                "inputs": {
+                                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                                    "type": "AdaptiveCard",
+                                    "version": "1.2",
+                                    "body": [
+                                        {
+                                            "type": "TextBlock",
+                                            "text": "✅ Isolation Approved",
+                                            "weight": "Bolder",
+                                            "size": "Large",
+                                            "color": "Good"
+                                        },
+                                        {
+                                            "type": "TextBlock",
+                                            "text": "The machine: @{triggerBody()?['CompromisedEntity']}, related to alert '@{triggerBody()?['AlertDisplayName']}' has been isolated.",
+                                            "wrap": true
+                                        }
+                                    ]
+                                }
+                            },
+                            "Update_an_adaptive_card_in_a_chat_or_channel": {
+                                "runAfter": {
+                                    "Compose-AdaptiveCard-Isolation-Approved": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "ApiConnection",
+                                "inputs": {
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['teams']['connectionId']"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "body": {
+                                        "messageId": "@body('Post-adaptive-card-and-wait-for-a-response')?['messageId']",
+                                        "recipient": {
+                                            "groupId": "b7a2893a-5a49-4330-85b7-a6daa53a978f",
+                                            "channelId": "19:61267c2b109247e2b013ee08e424b382@thread.skype"
+                                        },
+                                        "messageBody": "@outputs('Compose-AdaptiveCard-Isolation-Approved')\r\n"
+                                    },
+                                    "path": "/v1.0/teams/conversation/updateAdaptivecard/poster/Flow bot/location/@{encodeURIComponent('Channel')}"
+                                }
+                            },
+                            "Simulated_step_-_Disable_Device_in_Defender_for_Endpoint": {
+                                "type": "Compose",
+                                "inputs": "This step would be replaced with the Isolate machine step in a production scenario."
+                            }
+                        },
+                        "runAfter": {
+                            "Post-adaptive-card-and-wait-for-a-response": [
+                                "Succeeded"
+                            ]
+                        },
+                        "else": {
+                            "actions": {
+                                "Compose-AdaptiveCard-Isolation-Rejected": {
+                                    "type": "Compose",
+                                    "inputs": {
+                                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                                        "type": "AdaptiveCard",
+                                        "version": "1.2",
+                                        "body": [
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "❌ Isolation Rejected",
+                                                "weight": "Bolder",
+                                                "size": "Large",
+                                                "color": "Attention"
+                                            },
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "No isolation action will be taken for alert '@{triggerBody()?['AlertDisplayName']}'.",
+                                                "wrap": true
+                                            }
+                                        ]
+                                    }
+                                },
+                                "Update_an_adaptive_card_in_a_chat_or_channel_1": {
+                                    "runAfter": {
+                                        "Compose-AdaptiveCard-Isolation-Rejected": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection",
+                                    "inputs": {
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['teams']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "body": {
+                                            "messageId": "@body('Post-adaptive-card-and-wait-for-a-response')?['messageId']\r\n",
+                                            "recipient": {
+                                                "groupId": "b7a2893a-5a49-4330-85b7-a6daa53a978f",
+                                                "channelId": "19:61267c2b109247e2b013ee08e424b382@thread.skype"
+                                            },
+                                            "messageBody": "@outputs('Compose-AdaptiveCard-Isolation-Rejected')\r\n"
+                                        },
+                                        "path": "/v1.0/teams/conversation/updateAdaptivecard/poster/Flow bot/location/@{encodeURIComponent('Channel')}"
+                                    }
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@equals(toLower(trim(body('Post-adaptive-card-and-wait-for-a-response')?['data']?['action'])), 'isolate')",
+                                        true
+                                    ]
+                                }
+                            ]
+                        },
+                        "type": "If"
+                    }
+                },
+                "runAfter": {},
+                "else": {
+                    "actions": {}
+                },
+                "expression": {
+                    "or": [
+                        {
+                            "contains": [
+                                "@triggerBody()?['AlertDisplayName']",
+                                "ransomware"
+                            ]
+                        },
+                        {
+                            "contains": [
+                                "@triggerBody()?['Description']",
+                                "ransomware"
+                            ]
+                        }
+                    ]
+                },
+                "type": "If"
+            }
+        },
+        "outputs": {},
+        "parameters": {
             "$connections": {
-              "defaultValue": {},
-              "type": "Object"
+                "type": "Object",
+                "defaultValue": {}
             }
-          },
-          "triggers": {
-            "DefenderAlertTrigger": {
-              "type": "ApiConnectionWebhook",
-              "inputs": {
-                "host": {
-                  "connection": {
-                    "name": "@parameters('$connections')['ascalert']['connectionId']"
-                  }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "type": "Object",
+            "value": {
+                "ascalert-1": {
+                    "id": "/subscriptions/df8c31ed-afa3-40de-a67d-7330e09c8acc/providers/Microsoft.Web/locations/westus/managedApis/ascalert",
+                    "connectionId": "/subscriptions/df8c31ed-afa3-40de-a67d-7330e09c8acc/resourceGroups/seclab_westus/providers/Microsoft.Web/connections/ascalert-1",
+                    "connectionName": "ascalert-1"
                 },
-                "body": {
-                  "callback_url": "@listCallbackUrl()"
-                },
-                "path": "/Microsoft.Security/Alert/subscribe"
-              }
+                "teams": {
+                    "id": "/subscriptions/df8c31ed-afa3-40de-a67d-7330e09c8acc/providers/Microsoft.Web/locations/westus/managedApis/teams",
+                    "connectionId": "/subscriptions/df8c31ed-afa3-40de-a67d-7330e09c8acc/resourceGroups/seclab_westus/providers/Microsoft.Web/connections/teams",
+                    "connectionName": "teams"
+                }
             }
-          },
-          "actions": {
-            "Compose_AdaptiveCard": {
-              "type": "Compose",
-              "inputs": {
-                "type": "AdaptiveCard",
-                "version": "1.2",
-                "body": [
-                  {
-                    "type": "TextBlock",
-                    "text": "🚨 Ransomware Alert - Action Required",
-                    "weight": "Bolder",
-                    "size": "Large",
-                    "color": "Attention"
-                  },
-                  {
-                    "type": "TextBlock",
-                    "text": "Alert: @{triggerBody()?['AlertDisplayName']}",
-                    "wrap": true
-                  },
-                  {
-                    "type": "TextBlock",
-                    "text": "Description: @{triggerBody()?['Description']}",
-                    "wrap": true
-                  },
-                  {
-                    "type": "TextBlock",
-                    "text": "Compromised Entity: @{triggerBody()?['CompromisedEntity']}",
-                    "wrap": true
-                  },
-                  {
-                    "type": "TextBlock",
-                    "text": "[View Alert in Defender for Cloud](@{triggerBody()?['AlertUri']})",
-                    "wrap": true
-                  }
-                ],
-                "actions": [
-                  {
-                    "type": "Action.Submit",
-                    "title": "Isolate Machine",
-                    "data": {
-                      "action": "isolate"
-                    }
-                  },
-                  {
-                    "type": "Action.Submit",
-                    "title": "Do Not Isolate",
-                    "data": {
-                      "action": "reject"
-                    }
-                  }
-                ]
-              }
-            }
-          }
         },
         "parameters": {
           "$connections": {
