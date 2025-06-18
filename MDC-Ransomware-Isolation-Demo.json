@@ -11,7 +11,7 @@
     },
     "logicAppName": {
       "type": "string",
-      "defaultValue": "LA_Quarantine_Ransomware_Servers",
+      "defaultValue": "LA_Isolate_Ransomware_Servers",
       "metadata": {
         "description": "Logic App Name"
       }
