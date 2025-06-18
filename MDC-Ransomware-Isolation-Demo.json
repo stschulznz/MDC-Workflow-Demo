@@ -15,6 +15,18 @@
       "metadata": {
         "description": "Logic App Name"
       }
+    },
+    "teamsGroupId": {
+      "type": "string",
+      "metadata": {
+        "description": "Microsoft Teams team (M365 Group) GUID"
+      }
+    },
+    "teamsChannelId": {
+      "type": "string",
+      "metadata": {
+        "description": "Channel ID inside that team"
+      }
     }
   },
   "resources": [
@@ -55,7 +67,7 @@
                 "inputs": {
                     "host": {
                         "connection": {
-                            "name": "@parameters('$connections')['ascalert-1']['connectionId']"
+                            "name": "@parameters('$connections')['ascalert']['connectionId']"
                         }
                     },
                     "body": {
@@ -139,8 +151,8 @@
                             "messageBody": "@{outputs('Compose-adaptivecard-request')}",
                             "updateMessage": "Thanks for your response!",
                             "recipient": {
-                                "groupId": "b7a2893a-5a49-4330-85b7-a6daa53a978f",
-                                "channelId": "19:61267c2b109247e2b013ee08e424b382@thread.skype"
+                                "groupId": "@parameters('TeamsGroupId')",
+                                "channelId": "@parameters('TeamsChannelId')"
                             }
                         }
                     },
@@ -197,8 +209,8 @@
                             "body": {
                                 "messageId": "@body('Post-adaptive-card-and-wait-for-a-response')?['messageId']",
                                 "recipient": {
-                                    "groupId": "b7a2893a-5a49-4330-85b7-a6daa53a978f",
-                                    "channelId": "19:61267c2b109247e2b013ee08e424b382@thread.skype"
+                                    "groupId": "@parameters('TeamsGroupId')",
+                                    "channelId": "@parameters('TeamsChannelId')"
                                 },
                                 "messageBody": "@{outputs('Compose-adaptive-card-isolation-approved')}"
                             },
@@ -252,8 +264,8 @@
                                 "body": {
                                     "messageId": "@body('Post-adaptive-card-and-wait-for-a-response')?['messageId']",
                                     "recipient": {
-                                        "groupId": "b7a2893a-5a49-4330-85b7-a6daa53a978f",
-                                        "channelId": "19:61267c2b109247e2b013ee08e424b382@thread.skype"
+                                        "groupId": "@parameters('TeamsGroupId')",
+                                        "channelId": "@parameters('TeamsChannelId')"
                                     },
                                     "messageBody": "@{outputs('Compose-adaptive-card-isolation-rejected')}"
                                 },
@@ -277,6 +289,12 @@
         },
         "outputs": {},
         "parameters": {
+            "TeamsGroupId": {
+                "type": "String"
+            },
+            "TeamsChannelId": {
+                "type": "String"
+            },
             "$connections": {
                 "type": "Object",
                 "defaultValue": {}
@@ -297,7 +315,9 @@
                 "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/teams')]"
               }
             }
-          }
+          },
+        "TeamsGroupId": { "value": "[parameters('teamsGroupId')]" },
+        "TeamsChannelId": { "value": "[parameters('teamsChannelId')]" }
         }
       }
     }
