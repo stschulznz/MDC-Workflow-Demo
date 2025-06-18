@@ -18,12 +18,14 @@
     },
     "teamsGroupId": {
       "type": "string",
+      "defaultValue": "Add here or update in the Logic app designer",
       "metadata": {
         "description": "Microsoft Teams team (M365 Group) GUID"
       }
     },
     "teamsChannelId": {
       "type": "string",
+      "defaultValue": "Add here or update in the Logic app designer",
       "metadata": {
         "description": "Channel ID inside that team"
       }
